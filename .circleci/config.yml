@@ -39,6 +39,9 @@ jobs:
           fingerprints:
             - "SHA256:btZIX7MqhgzEtJuohV23iAoUmXiLcdWHknRt0O4gdNc"
       - run:
+          name: Install nmap
+          command: sudo apt-get update && sudo apt-get install -y nmap
+      - run:
           name: Debug EC2 Connection Info
           command: |
             echo "EC2_USERNAME: $EC2_USERNAME"
@@ -46,12 +49,8 @@ jobs:
       - run:
           name: Network Debugging
           command: |
-            echo "Ping test:"
-            ping -c 4 $EC2_PUBLIC_IP
-            echo "Traceroute:"
-            traceroute $EC2_PUBLIC_IP
-            echo "Telnet test:"
-            timeout 5 telnet $EC2_PUBLIC_IP 22 || echo "Telnet failed"
+            echo "Performing port scan on $EC2_PUBLIC_IP:"
+            nmap -p 22 $EC2_PUBLIC_IP
       - run:
           name: Deploy to EC2
           no_output_timeout: 30m
@@ -60,8 +59,11 @@ jobs:
               echo "EC2_PUBLIC_IP is not set. Please set this environment variable in CircleCI project settings."
               exit 1
             fi
+            echo "Attempting to connect to $EC2_PUBLIC_IP"
             ssh -v -o StrictHostKeyChecking=no -o ConnectTimeout=10 $EC2_USERNAME@$EC2_PUBLIC_IP '
             set -x
+            echo "Successfully connected to EC2 instance"
+            echo "Current directory: $(pwd)"
             echo "Changing directory..."
             cd ~/devops-ca/SimpleApplication || exit 1
             echo "Pulling latest changes..."
@@ -70,6 +72,7 @@ jobs:
             timeout 300s npm install || exit 1
             echo "Starting/Restarting application..."
             timeout 60s pm2 start ./bin/www --name mathapp || timeout 60s pm2 restart mathapp || exit 1
+            echo "Deployment completed successfully"
             '
 
 workflows:
