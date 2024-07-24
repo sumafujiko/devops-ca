@@ -1,29 +1,35 @@
 version: 2.1
+
 jobs:
   build:
     docker:
       - image: cimg/node:14.0
     steps:
       - checkout
-      - run: npm install
-      - run: npm test
-deploy:
-  docker:
-    - image: cimg/base:stable
-  steps:
-    - checkout
-    - add_ssh_keys:
-        fingerprints:
-          - "SHA256:btZIX7MqhgzEtJuohV23iAoUmXiLcdWHknRt0O4gdNc"
-    - run:
-        name: Deploy to EC2
-        command: |
-          ssh -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_IP << EOF
-            cd ~/app/SimpleApplication
-            git pull origin main
-            npm install
-            pm2 restart all
-          EOF
+      - run:
+          name: Install Dependencies
+          command: npm install
+      - run:
+          name: Run tests
+          command: npm test
+
+  deploy:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints:
+            - "SHA256:btZIX7MqhgzEtJuohV23iAoUmXiLcdWHknRt0O4gdNc"
+      - run:
+          name: Deploy to EC2
+          command: |
+            ssh -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_IP << EOF
+              cd ~/app/SimpleApplication
+              git pull origin main
+              npm install
+              pm2 restart all
+            EOF
 
 workflows:
   version: 2
