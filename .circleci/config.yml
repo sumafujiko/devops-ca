@@ -45,7 +45,7 @@ jobs:
             cd ~/devops-ca/SimpleApplication &&
             git pull origin main &&
             npm install &&
-            pm2 start ./bin/www --name example_app || pm2 restart example_app
+            pm2 start ./bin/www --name mathapp || pm2 restart mathapp
             '
 
 workflows:
