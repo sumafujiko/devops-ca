@@ -1,30 +1,52 @@
 version: 2.1
 
+orbs:
+  aws-cli: circleci/aws-cli@2.0
+
 jobs:
   build:
     docker:
-      - image: cimg/node:14.0
+      - image: cimg/node:14.20.0
     steps:
       - checkout
       - run:
-          name: Install Dependencies
-          command: npm install
+          name: List Directory Contents
+          command: |
+            echo "Current directory:"
+            pwd
+            echo "Directory contents:"
+            ls -la
+            echo "SimpleApplication contents:"
+            ls -la SimpleApplication
       - run:
-          name: Run tests
-          command: npm test
+          name: Install Dependencies
+          command: |
+            cd SimpleApplication
+            npm install
+      - run:
+          name: Run Tests
+          command: |
+            cd SimpleApplication
+            npm test
 
   deploy:
     docker:
       - image: cimg/base:stable
     steps:
       - checkout
+      - aws-cli/setup
       - add_ssh_keys:
           fingerprints:
             - "SHA256:btZIX7MqhgzEtJuohV23iAoUmXiLcdWHknRt0O4gdNc"
       - run:
           name: Deploy to EC2
           command: |
-            ssh -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_IP "cd ~/app/SimpleApplication && git pull origin main && npm install && pm2 restart all"
+            ssh -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_DNS '
+            cd ~/devops-ca/SimpleApplication &&
+            git pull origin main &&
+            npm install &&
+            pm2 start ./bin/www --name example_app || pm2 restart example_app
+            '
 
 workflows:
   version: 2
