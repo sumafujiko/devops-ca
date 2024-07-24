@@ -30,19 +30,6 @@ jobs:
           fingerprints:
             - "SHA256:btZIX7MqhgzEtJuohV23iAoUmXiLcdWHknRt0O4gdNc"
       - run:
-          name: Install nmap
-          command: sudo apt-get update && sudo apt-get install -y nmap
-      - run:
-          name: Debug EC2 Connection Info
-          command: |
-            echo "EC2_USERNAME: $EC2_USERNAME"
-            echo "EC2_PUBLIC_IP: $EC2_PUBLIC_IP"
-      - run:
-          name: Network Debugging
-          command: |
-            echo "Performing port scan on $EC2_PUBLIC_IP:"
-            nmap -p 22 $EC2_PUBLIC_IP
-      - run:
           name: Deploy to EC2
           no_output_timeout: 30m
           command: |
@@ -52,20 +39,31 @@ jobs:
             fi
             echo "Attempting to connect to $EC2_PUBLIC_IP"
             ssh -v -o StrictHostKeyChecking=no -o ConnectTimeout=10 $EC2_USERNAME@$EC2_PUBLIC_IP '
-            set -x
+            set -ex
             echo "Successfully connected to EC2 instance"
             echo "Current directory: $(pwd)"
             
-            # Create directory if it doesn't exist
+            # Check if Node.js is installed
+            if ! command -v node &> /dev/null; then
+              echo "Node.js not found. Installing Node.js and npm..."
+              curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+              sudo apt-get install -y nodejs
+            fi
+            
+            # Verify Node.js and npm installation
+            node --version
+            npm --version
+            
+            # Create directory if it doesnt exist
             mkdir -p ~/devops-ca/SimpleApplication
             
             # Navigate to the directory
-            cd ~/devops-ca/SimpleApplication || exit 1
+            cd ~/devops-ca/SimpleApplication
             
             # Check if the repository is already cloned
             if [ ! -d ".git" ]; then
               echo "Cloning repository..."
-              git clone https://github.com/sumafujiko/devops-ca.git .
+              git clone https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME.git .
             else
               echo "Pulling latest changes..."
               git pull origin main
@@ -73,6 +71,12 @@ jobs:
             
             echo "Installing dependencies..."
             npm install
+            
+            # Check if PM2 is installed globally, if not install it
+            if ! command -v pm2 &> /dev/null; then
+              echo "PM2 not found. Installing PM2..."
+              sudo npm install -g pm2
+            fi
             
             echo "Starting/Restarting application..."
             pm2 start ./bin/www --name mathapp || pm2 restart mathapp
