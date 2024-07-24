@@ -10,15 +10,6 @@ jobs:
     steps:
       - checkout
       - run:
-          name: List Directory Contents
-          command: |
-            echo "Current directory:"
-            pwd
-            echo "Directory contents:"
-            ls -la
-            echo "SimpleApplication contents:"
-            ls -la SimpleApplication
-      - run:
           name: Install Dependencies
           command: |
             cd SimpleApplication
@@ -64,14 +55,28 @@ jobs:
             set -x
             echo "Successfully connected to EC2 instance"
             echo "Current directory: $(pwd)"
-            echo "Changing directory..."
+            
+            # Create directory if it doesn't exist
+            mkdir -p ~/devops-ca/SimpleApplication
+            
+            # Navigate to the directory
             cd ~/devops-ca/SimpleApplication || exit 1
-            echo "Pulling latest changes..."
-            timeout 300s git pull origin main || exit 1
+            
+            # Check if the repository is already cloned
+            if [ ! -d ".git" ]; then
+              echo "Cloning repository..."
+              git clone https://github.com/sumafujiko/devops-ca.git .
+            else
+              echo "Pulling latest changes..."
+              git pull origin main
+            fi
+            
             echo "Installing dependencies..."
-            timeout 300s npm install || exit 1
+            npm install
+            
             echo "Starting/Restarting application..."
-            timeout 60s pm2 start ./bin/www --name mathapp || timeout 60s pm2 restart mathapp || exit 1
+            pm2 start ./bin/www --name mathapp || pm2 restart mathapp
+            
             echo "Deployment completed successfully"
             '
 
