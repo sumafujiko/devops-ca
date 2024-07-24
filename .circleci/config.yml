@@ -24,12 +24,7 @@ jobs:
       - run:
           name: Deploy to EC2
           command: |
-            ssh -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_IP << EOF
-              cd ~/app/SimpleApplication
-              git pull origin main
-              npm install
-              pm2 restart all
-            EOF
+            ssh -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_IP "cd ~/app/SimpleApplication && git pull origin main && npm install && pm2 restart all"
 
 workflows:
   version: 2
