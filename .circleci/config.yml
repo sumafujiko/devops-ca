@@ -38,6 +38,16 @@ jobs:
               exit 1
             fi
             echo "Attempting to connect to $EC2_PUBLIC_IP"
+
+            # Create SSL files
+            echo "$PRIVATE_KEY" > privatekey.pem
+            echo "$SERVER_CERT" > server.crt
+            chmod 600 privatekey.pem
+            chmod 644 server.crt
+
+            # Copy SSL files to EC2
+            scp -o StrictHostKeyChecking=no privatekey.pem server.crt $EC2_USERNAME@$EC2_PUBLIC_IP:~/devops-ca/SimpleApplication/
+
             ssh -v -o StrictHostKeyChecking=no -o ConnectTimeout=10 $EC2_USERNAME@$EC2_PUBLIC_IP '
             set -ex
             echo "Successfully connected to EC2 instance"
