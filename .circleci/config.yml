@@ -71,12 +71,14 @@ jobs:
             cd ~/devops-ca/SimpleApplication
             
             # Check if the repository is already cloned
-            if [ ! -d ".git" ]; then
-              echo "Cloning repository..."
-              git clone https://github.com/sumafujiko/devops-ca.git .
+            cd ~/devops-ca/SimpleApplication
+            if [ -d ".git" ]; then
+            echo "Updating existing repository..."
+            git fetch --all
+            git reset --hard origin/main
             else
-              echo "Pulling latest changes..."
-              git pull origin main
+            echo "Cloning repository..."
+            git clone https://github.com/sumafujiko/devops-ca.git .
             fi
             
             echo "Installing dependencies..."
