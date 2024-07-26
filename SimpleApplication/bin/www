@@ -37,8 +37,8 @@ var port = normalizePort(process.env.PORT || '8080');
 var https_port = normalizePort(process.env.PORT_HTTPS || '8443');
 
 if (process.env.ENV !== "DEV") {
-  var privateKeyPath = process.env.SSL_KEY_PATH || path.join(__dirname, '..', 'privatekey.pem');
-  var certPath = process.env.SSL_CERT_PATH || path.join(__dirname, '..', 'server.crt');
+  var privateKeyPath = process.env.SSL_KEY_PATH || path.join(__dirname, '..', '..', 'privatekey.pem');
+  var certPath = process.env.SSL_CERT_PATH || path.join(__dirname, '..', '..', 'server.crt');
 
   var privateKey = fs.readFileSync(privateKeyPath, 'utf8');
   var cert = fs.readFileSync(certPath, 'utf8');
