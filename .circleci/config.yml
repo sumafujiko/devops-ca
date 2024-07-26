@@ -36,7 +36,7 @@ jobs:
       - run:
           name: Deploy to EC2
           command: |
-            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ec2-user@$EC2_PUBLIC_IP "cd ~/devops-ca/SimpleApplication && git pull origin main"
+           ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ec2-user@$EC2_PUBLIC_IP "cd ~/devops-ca/SimpleApplication && git pull --no-rebase origin main"
             ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ec2-user@$EC2_PUBLIC_IP "cd ~/devops-ca/SimpleApplication && npm install"
             ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ec2-user@$EC2_PUBLIC_IP "cd ~/devops-ca/SimpleApplication && pm2 describe mathapp > /dev/null && if [ \$? -eq 0 ]; then pm2 restart mathapp; else SSL_KEY_PATH=~/devops-ca/SimpleApplication/privatekey.pem SSL_CERT_PATH=~/devops-ca/SimpleApplication/server.crt pm2 start ./bin/www --name mathapp; fi"
             ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ec2-user@$EC2_PUBLIC_IP "pm2 save"
