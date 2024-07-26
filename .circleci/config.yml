@@ -1,90 +1,48 @@
 version: 2.1
-
-orbs:
-  aws-cli: circleci/aws-cli@2.0
-
 jobs:
   build:
     docker:
       - image: cimg/node:14.20.0
     steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "SHA256:btZIX7MqhgzEtJuohV23iAoUmXiLcdWHknRt0O4gdNc"
       - checkout
-      - run:
+      - run: 
+          name: List directory contents
+          command: |
+            echo "Project root:"
+            ls -la
+            echo "SimpleApplication directory:"
+            ls -la SimpleApplication || echo "No SimpleApplication directory found"
+      - run: 
           name: Install Dependencies
           command: |
             cd SimpleApplication
-            npm install
-      - run:
+            npm ci
+      - run: 
           name: Run Tests
           command: |
             cd SimpleApplication
             npm test
-
   deploy:
     docker:
       - image: cimg/base:stable
     steps:
       - checkout
-      - aws-cli/setup
       - add_ssh_keys:
           fingerprints:
             - "SHA256:btZIX7MqhgzEtJuohV23iAoUmXiLcdWHknRt0O4gdNc"
       - run:
           name: Deploy to EC2
-          no_output_timeout: 30m
           command: |
-            if [ -z "$EC2_PUBLIC_IP" ]; then
-              echo "EC2_PUBLIC_IP is not set. Please set this environment variable in CircleCI project settings."
-              exit 1
-            fi
-            echo "Attempting to connect to $EC2_PUBLIC_IP"
-
-            # Create SSL files
-            echo "$PRIVATE_KEY" > privatekey.pem
-            echo "$SERVER_CERT" > server.crt
-            chmod 600 privatekey.pem
-            chmod 644 server.crt
-
-            # Copy SSL files to EC2
-            scp -o StrictHostKeyChecking=no privatekey.pem server.crt $EC2_USERNAME@$EC2_PUBLIC_IP:~/devops-ca/SimpleApplication/
-
-            ssh -v -o StrictHostKeyChecking=no -o ConnectTimeout=10 $EC2_USERNAME@$EC2_PUBLIC_IP '
-            set -ex
-            echo "Successfully connected to EC2 instance"
-            
-            # Navigate to the directory
-            cd ~/devops-ca/SimpleApplication
-            
-            # Update repository
-            if [ -d ".git" ]; then
-              echo "Updating existing repository..."
-              git fetch --all
-              git reset --hard origin/main
-            else
-              echo "Cloning repository..."
-              git clone https://github.com/sumafujiko/devops-ca.git .
-            fi
-            
-            echo "Installing dependencies..."
-            npm install
-            
-            # Install PM2 if not present
-            if ! command -v pm2 &> /dev/null; then
-              echo "PM2 not found. Installing PM2..."
-              sudo npm install -g pm2
-            fi
-            
-            echo "Starting/Restarting application..."
-            SSL_KEY_PATH=~/devops-ca/SimpleApplication/privatekey.pem \
-            SSL_CERT_PATH=~/devops-ca/SimpleApplication/server.crt \
-            pm2 start ./bin/www --name mathapp || pm2 restart mathapp
-            
-            echo "Deployment completed successfully"
-            '
-
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $EC2_USERNAME@$EC2_PUBLIC_IP "cd ~/devops-ca/SimpleApplication && git pull origin main"
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $EC2_USERNAME@$EC2_PUBLIC_IP "cd ~/devops-ca/SimpleApplication && npm install"
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $EC2_USERNAME@$EC2_PUBLIC_IP "cd ~/devops-ca/SimpleApplication && pm2 describe mathapp > /dev/null && if [ \$? -eq 0 ]; then pm2 restart mathapp; else SSL_KEY_PATH=~/devops-ca/SimpleApplication/privatekey.pem SSL_CERT_PATH=~/devops-ca/SimpleApplication/server.crt pm2 start ./bin/www --name mathapp; fi"
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $EC2_USERNAME@$EC2_PUBLIC_IP "pm2 save"
 workflows:
   version: 2
-  build-and-deploy:
+  build-test-deploy:
     jobs:
       - build
       - deploy:
